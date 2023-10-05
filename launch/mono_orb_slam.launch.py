@@ -18,7 +18,7 @@ def generate_launch_description():
 
   declare_visualization_cmd = DeclareLaunchArgument(
     'visualization',
-    default_value='False',
+    default_value='True',
     description='Enable visualization'
   )
 
@@ -37,7 +37,13 @@ def generate_launch_description():
       {'vocabulary_file': '/home/phoenix/ros2_ws/src/open-source/ORB_SLAM3/Vocabulary/ORBvoc.txt'},
       {'settings_file': settings_file},
       {'visualization': visualization},
-    ]
+    ],
+    remappings=[
+      ('/camera/image_raw', '/zed2i/zed_node/left/image_rect_color'),
+      ('/camera/camera_info', '/camera/camera_info'),
+      ('/camera/image_raw/compressed', '/zed2i/zed_node/stereo/compressed/image_rect_color'),
+      ('/camera/stereo/image_raw', '/zed2i/zed_node/stereo/image_rect_color'),
+    ],
   )
   
   

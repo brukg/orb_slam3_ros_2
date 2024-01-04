@@ -8,12 +8,19 @@ from launch.conditions import IfCondition
 def generate_launch_description():
   pkg_dir = get_package_share_directory('orb_slam3_ros_2')
   settings_file = LaunchConfiguration('settings_file')
+  vocabulary_file = LaunchConfiguration('vocabulary_file')
   visualization = LaunchConfiguration('visualization')
 
   declare_settings_file_cmd = DeclareLaunchArgument(
     'settings_file',
     default_value=pkg_dir+'/params/ZED2i.yaml',
     description='Path to the settings file'
+  )
+
+  declare_vocabulary_file_cmd = DeclareLaunchArgument(
+    'vocabulary_file',
+    default_value=pkg_dir+'/params/vocabulary/ORBvoc.txt',
+    description='Path to the vocabulary file'
   )
 
   declare_visualization_cmd = DeclareLaunchArgument(
@@ -34,12 +41,14 @@ def generate_launch_description():
       {'publish_tf': True},
       {'camera_topic': '/camera/image_raw'},
       {'camera_info_topic': '/camera/camera_info'},
-      {'vocabulary_file': '/home/phoenix/ros2_ws/src/open-source/ORB_SLAM3/Vocabulary/ORBvoc.txt'},
+      {'vocabulary_file': vocabulary_file},
       {'settings_file': settings_file},
       {'visualization': visualization},
     ],
     remappings=[
       ('/camera/image_raw', '/zed2i/zed_node/left/image_rect_color'),
+      ('/right/image_rect_gray/compressed', '/zed2i/zed_node/right/image_rect_color'),
+      ('/left/image_rect_gray/compressed', '/zed2i/zed_node/left/image_rect_color'),
       ('/camera/camera_info', '/camera/camera_info'),
       ('/camera/image_raw/compressed', '/zed2i/zed_node/stereo/compressed/image_rect_color'),
       ('/camera/stereo/image_raw', '/zed2i/zed_node/stereo/image_rect_color'),
@@ -50,6 +59,7 @@ def generate_launch_description():
   ld = LaunchDescription()
   ld.add_action(declare_settings_file_cmd)
   ld.add_action(declare_visualization_cmd)
+  ld.add_action(declare_vocabulary_file_cmd)
   ld.add_action(mono_orb_slam_node)
 
   return ld

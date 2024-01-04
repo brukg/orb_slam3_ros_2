@@ -1,13 +1,13 @@
-#include "nodes/mono_orb_slam_node.hpp"
+#include "nodes/orb_slam_node.hpp"
 // using namespace std;
 
 namespace orb_slam3_ros2
 {
-  MonocularSlamNode::MonocularSlamNode() 
+  ORBSlamNode::ORBSlamNode() 
   : Node("mono_orb_slam_node")
   { 
-    declare_parameter("vocabulary_file", "/home/phoenix/ros2_ws/src/open-source/ORB_SLAM3/Vocabulary/ORBvoc.txt");
-    declare_parameter("settings_file", "/home/phoenix/ros2_ws/src/orb_slam3_ros_2/params/ZED2i.yaml");
+    declare_parameter("vocabulary_file", "~/params/vocabulary/ORBvoc.txt");
+    declare_parameter("settings_file", "~/params/ZED2i.yaml");
     declare_parameter("visualization", false);
 
     get_parameter("vocabulary_file", str_vocabulary_file);
@@ -17,16 +17,32 @@ namespace orb_slam3_ros2
     mpSLAM = new ORB_SLAM3::System(str_vocabulary_file, str_settings_file, ORB_SLAM3::System::MONOCULAR, visualization);
 
     sub_mono = this->create_subscription<sensor_msgs::msg::Image>
-                        ("/camera/image_raw", 1, std::bind(&MonocularSlamNode::monoCallback, this, std::placeholders::_1));
+                        ("/camera/image_raw", 1, std::bind(&ORBSlamNode::monoCallback, this, std::placeholders::_1));
 
     // sub_stereo_compressed = this->create_subscription<sensor_msgs::msg::CompressedImage>
-    //                     ("/camera/image_raw/compressed", 1, std::bind(&MonocularSlamNode::stereoCompressedCallback, this, std::placeholders::_1, std::placeholders::_2));
+    //                     ("/camera/image_raw/compressed", 1, std::bind(&ORBSlamNode::stereoCompressedCallback, this, std::placeholders::_1, std::placeholders::_2));
                       
-    // sub_stereo = this->create_subscription<sensor_msgs::msg::Image>
-    //                     ("/camera/stereo/image_raw", 1, std::bind(&MonocularSlamNode::stereoCallback, this, std::placeholders::_1, std::placeholders::_2));
-  };
+    image_l_sub_.subscribe(this, "left/image_rect_gray/compressed");
 
-  MonocularSlamNode::~MonocularSlamNode()
+    image_r_sub_.subscribe(this, "right/image_rect_gray/compressed");
+
+    sync_ = std::make_shared<message_filters::TimeSynchronizer<sensor_msgs::msg::CompressedImage, sensor_msgs::msg::CompressedImage>>(image_l_sub_, image_r_sub_, 5);
+        
+    sync_->registerCallback(std::bind(&ORBSlamNode::stereoCompressedCallback, this, std::placeholders::_1, std::placeholders::_2));
+    
+    // sub_stereo = this->create_subscription<sensor_msgs::msg::Image>
+    //                     ("/camera/stereo/image_raw", 1, std::bind(&ORBSlamNode::stereoCallback, this, std::placeholders::_1, std::placeholders::_2));
+
+                
+    // sub_rgbd = this->create_subscription<sensor_msgs::msg::Image>
+    //                     ("/camera/depth/image_raw", 1, std::bind(&ORBSlamNode::rgbdCallback, this, std::placeholders::_1, std::placeholders::_2));
+
+    // sub_imu = this->create_subscription<sensor_msgs::msg::Imu>
+    //                     ("/imu", 1, std::bind(&ORBSlamNode::imuCallback, this, std::placeholders::_1));
+    
+    };
+
+  ORBSlamNode::~ORBSlamNode()
   {
     // Stop all threads
     mpSLAM->Shutdown();
@@ -35,7 +51,7 @@ namespace orb_slam3_ros2
     mpSLAM->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
   };
 
-  void MonocularSlamNode::monoCallback(const sensor_msgs::msg::Image::SharedPtr msg)
+  void ORBSlamNode::monoCallback(const sensor_msgs::msg::Image::SharedPtr msg)
   { 
     RCLCPP_INFO(rclcpp::get_logger("mono_orb::monoCallback"), "I heard: [%s]", msg->header.frame_id.c_str());
     // Copy the ros image message to cv::Mat.
@@ -60,7 +76,7 @@ namespace orb_slam3_ros2
   }
 
 
-  void MonocularSlamNode::stereoCallback(const sensor_msgs::msg::Image::SharedPtr msgLeft, const sensor_msgs::msg::Image::SharedPtr msgRight)
+  void ORBSlamNode::stereoCallback(const sensor_msgs::msg::Image::SharedPtr msgLeft, const sensor_msgs::msg::Image::SharedPtr msgRight)
   {
     RCLCPP_INFO(rclcpp::get_logger("mono_orb::stereoCallback"), "I heard: [%s]", msgLeft->header.frame_id.c_str());
     // Copy the ros image message to cv::Mat.
@@ -80,7 +96,9 @@ namespace orb_slam3_ros2
     double seconds = static_cast<double>(msgLeft->header.stamp.sec) + static_cast<double>(msgLeft->header.stamp.nanosec) * 1e-9;
     mpSLAM->TrackStereo(imLeft, imRight, seconds);
   }
-  void MonocularSlamNode::stereoCompressedCallback(const sensor_msgs::msg::CompressedImage::SharedPtr msgLeft, const sensor_msgs::msg::CompressedImage::SharedPtr msgRight)
+
+  void ORBSlamNode::stereoCompressedCallback(const sensor_msgs::msg::CompressedImage::ConstSharedPtr msgLeft, 
+                                            const sensor_msgs::msg::CompressedImage::ConstSharedPtr msgRight)
   {
     RCLCPP_INFO(rclcpp::get_logger("mono_orb::stereoCompressedCallback"), "I heard: [%s]", msgLeft->header.frame_id.c_str());
     // Copy the ros image message to cv::Mat.
@@ -106,7 +124,7 @@ int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
   
-  rclcpp::spin(std::make_shared<orb_slam3_ros2::MonocularSlamNode>());
+  rclcpp::spin(std::make_shared<orb_slam3_ros2::ORBSlamNode>());
 
   
   rclcpp::shutdown();

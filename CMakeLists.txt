@@ -12,6 +12,8 @@ set(OpenCV_DIR /home/phoenix/ros2_ws/src/open-source/opencv/build)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -46,17 +48,18 @@ set(LIBS
 )
 
 
-add_executable(mono_orb_slam_node 
-  src/nodes/mono_orb_slam_node.cpp 
+add_executable(orb_slam_node 
+  src/nodes/orb_slam_node.cpp 
 )
 
-ament_target_dependencies(mono_orb_slam_node 
+ament_target_dependencies(orb_slam_node 
   rclcpp 
   sensor_msgs
+  message_filters
   OpenCV
   cv_bridge
 )
-set_target_properties(mono_orb_slam_node PROPERTIES CXX_STANDARD 17)
+set_target_properties(orb_slam_node PROPERTIES CXX_STANDARD 17)
 
 
 if(BUILD_TESTING)
@@ -72,12 +75,12 @@ if(BUILD_TESTING)
 endif()
 
 
-target_link_libraries(mono_orb_slam_node
+target_link_libraries(orb_slam_node
   ${LIBS}
 )
 
 install(TARGETS
-mono_orb_slam_node
+orb_slam_node
 DESTINATION lib/${PROJECT_NAME})
 ament_package()
 

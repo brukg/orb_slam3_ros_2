@@ -4,9 +4,17 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
+import os
+import os
+import subprocess
 
 def generate_launch_description():
   pkg_dir = get_package_share_directory('orb_slam3_ros_2')
+  # Exporting LD_LIBRARY_PATH
+  os.environ['LD_LIBRARY_PATH'] = pkg_dir+'lib:' + os.environ.get('LD_LIBRARY_PATH', '')
+  cmd = 'export LD_LIBRARY_PATH=' + pkg_dir + 'lib:' + os.environ.get('LD_LIBRARY_PATH', '')
+  subprocess.run(cmd, shell=True)
+  
   settings_file = LaunchConfiguration('settings_file')
   vocabulary_file = LaunchConfiguration('vocabulary_file')
   visualization = LaunchConfiguration('visualization')
@@ -32,8 +40,8 @@ def generate_launch_description():
   print("aa", IfCondition(visualization))
   mono_orb_slam_node = Node(
     package='orb_slam3_ros_2',
-    executable='mono_orb_slam_node',
-    name='mono_orb_slam_node',
+    executable='orb_slam_node',
+    name='orb_slam_node',
     output='screen',
     parameters=[
       {'publish_pointcloud': False},
@@ -47,8 +55,8 @@ def generate_launch_description():
     ],
     remappings=[
       ('/camera/image_raw', '/zed2i/zed_node/left/image_rect_color'),
-      ('/right/image_rect_gray/compressed', '/zed2i/zed_node/right/image_rect_color'),
-      ('/left/image_rect_gray/compressed', '/zed2i/zed_node/left/image_rect_color'),
+      # ('/right/image_rect_gray/compressed', '/zed2i/zed_node/right/image_rect_color'),
+      # ('/left/image_rect_gray/compressed', '/zed2i/zed_node/left/image_rect_color'),
       ('/camera/camera_info', '/camera/camera_info'),
       ('/camera/image_raw/compressed', '/zed2i/zed_node/stereo/compressed/image_rect_color'),
       ('/camera/stereo/image_raw', '/zed2i/zed_node/stereo/image_rect_color'),
